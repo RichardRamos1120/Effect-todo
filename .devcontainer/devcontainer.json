@@ -1,0 +1,33 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/javascript-node
+{
+    "name": "Effect Todos",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "devcontainer",
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+    "postCreateCommand": "./scripts/setup.sh",
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {},
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "configureZshAsDefaultShell": true
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "nrwl.angular-console",
+                "esbenp.prettier-vscode",
+                "mongodb.mongodb-vscode",
+                "Postman.postman-for-vscode"
+            ],
+            "settings": {
+                "mdb.presetConnections": [
+                    {
+                        "name": "Default Connection",
+                        "connectionString": "mongodb://localhost:27017"
+                    }
+                ]
+            }
+        }
+    }
+}
