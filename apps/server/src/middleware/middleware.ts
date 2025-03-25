@@ -1,4 +1,4 @@
-import {Effect, Context, Layer,Schema, Redacted} from "effect"
+import {Effect, Context, Layer, Schema, Redacted} from "effect"
 import {config} from "../config/config"
 import {
     HttpApiMiddleware,
@@ -6,19 +6,9 @@ import {
     HttpApiSecurity,
   } from "@effect/platform"
 import jwt from "jsonwebtoken";
+import { JwtEffect, User, Unauthorized } from "../services/jwtEffect";
 
-class User extends Schema.Class<User>("User")({
-  id: Schema.String,
-  email: Schema.String
-}) {}
 
-// Define a schema for the "Unauthorized" error
-class Unauthorized extends Schema.TaggedError<Unauthorized>()(
-  "Unauthorized",
-  {},
-  // Specify the HTTP status code for unauthorized errors
-  HttpApiSchema.annotations({ status: 401 })
-) {}
 export class CurrentUser extends Context.Tag("CurrentUser")<CurrentUser, User>() {}
 
 // Create the Authorization middleware
@@ -42,20 +32,25 @@ export const AuthorizationLive = Layer.effect(
 
     return {
       myBearer: (bearerToken) =>
-        Effect.promise(async () => {
-          try {
-            const jwtSecret = await Effect.runPromise(config.jwt_secret);
+        Effect.gen(function* () {
+          // Get JWT secret
+          const jwtSecret = yield* Effect.orDie(config.jwt_secret);
 
-            const decoded = await jwt.verify(Redacted.value(bearerToken), jwtSecret) as { userId: string; email: string };
+          // Verify JWT token using JwtEffect.verify directly
+          const decoded = yield* JwtEffect.verify<{ userId: string; email: string }>(
+            Redacted.value(bearerToken),
+            jwtSecret
+          );
+
+          // Log decoded token
+          yield* Effect.sync(() => {
             console.log("Decoded token:", decoded);
-            currentUser = decoded.userId
-            return new User({email:decoded.email,id:decoded.userId});
-          } catch (error) {
-            // Log error details for debugging
-            console.error("Invalid token:", error.message);
-            throw new Unauthorized();
-          }
-        })
+            currentUser = decoded.userId;
+          });
+
+          // Return user object
+          return new User({ email: decoded.email, id: decoded.userId });
+        }),
     };
   })
 );
